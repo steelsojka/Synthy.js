@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+  <script type="text/javascript" src="src/Synthy.Core.js"></script>
+  <script type="text/javascript" src="src/Synthy.Envelope.js"></script>
+  <script type="text/javascript" src="src/Synthy.Filter.js"></script>
+  <script type="text/javascript" src="src/Synthy.Master.js"></script>
+  <script type="text/javascript" src="src/Synthy.Osc.js"></script>
+  <script type="text/javascript" src="src/Synthy.Patch.js"></script>
+  <script type="text/javascript" src="src/Synthy.Voice.js"></script>
+</head>
+<body>
+  <script type="text/javascript">
+
+    window.addEventListener('DOMContentLoaded', function() {
+      Synthy.initialize({
+        oscillators : 2
+      });
+
+      Synthy.master.output.gain.value = 0.1;
+    });
+
+  </script>
+</body>
+</html>
