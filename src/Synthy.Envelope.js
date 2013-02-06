@@ -1,7 +1,8 @@
 var Synthy = (function(Synthy) {
 
-  Synthy.Envelope = function(patch) {
-    this.envelope = Synthy.context.createGainNode();
+  Synthy.Envelope = function(patch, context) {
+    this.context = context;
+    this.envelope = context.createGainNode();
     this.envelope.gain.value = 0;
     this.patch = patch;
     this.input = this.output = this.envelope;
@@ -9,21 +10,24 @@ var Synthy = (function(Synthy) {
 
   Synthy.Envelope.prototype = {
     trigger : function() {
-      var now = Synthy.context.currentTime;
-      var attackEnd = now + this.patch.A / 10;
+      var now = this.context.currentTime;
+      var gain = this.envelope.gain;
+      var attackEnd = now + this.patch.attack / 10;
 
-      this.envelope.gain.setValueAtTime(0, now);
-      this.envelope.gain.linearRampToValueAtTime(1, attackEnd);
-      this.envelope.gain.setTargetValueAtTime((this.patch.S / 100), attackEnd, (this.patch.D / 100) + 0.001);
+      gain.setValueAtTime(0, now);
+      gain.linearRampToValueAtTime(1, attackEnd);
+      gain.setTargetValueAtTime((this.patch.sustain / 100), attackEnd, (this.patch.decay / 100) + 0.001);
     },
     release : function() {
-      var now = Synthy.context.currentTime;
-      this.envelope.gain.cancelScheduledValues(now);
-      this.envelope.gain.setValueAtTime(this.envelope.gain.value, now);
-      this.envelope.gain.linearRampToValueAtTime(0, now + (this.patch.R / 100));
+      var now = this.context.currentTime;
+      var gain = this.envelope.gain;
+
+      gain.cancelScheduledValues(now);
+      gain.setValueAtTime(gain.value, now);
+      gain.linearRampToValueAtTime(0, now + (this.patch.release / 100));
     },
     getReleaseTime : function() {
-      return this.patch.R / 100;
+      return this.patch.release / 100;
     }
   };
 

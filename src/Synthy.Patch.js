@@ -1,51 +1,28 @@
 var Synthy = (function() {
   
-  Synthy.Patch = function(options) {
-    var s = Synthy;
+  var _toTitleCase = function(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  };
 
-    this.osc = [];
-
-    for (var i = 0; i < s.oscCount; i++) {
-      this.osc.push({
-        "mod" : {
-          "rate" : 10,
-          "mix" : 0.5
-        },
-        "freq" : 440,
-        "detune" : 0,
-        "mix" : 1,
-        "type" : 1
-      });
+  Synthy.Patch = function(patch) {
+    for (var key in patch) {
+      if (patch.hasOwnProperty(key)) {
+        this[key] = patch[key];
+      }
     }
-
-    this.filter = [{
-      "cutoff" : 100,
-      "q" : 5,
-      "mod" : 10,
-      "type" : 0,
-      "env" : 67,
-      "A" : 0,
-      "D" : 0,
-      "S" : 5,
-      "R" : 5
-    }];
-
-    this.volumeEnv = {
-      "A" : 0,
-      "D" : 0,
-      "S" : 100,
-      "R" : 0
-    };
-
-    this.master = {
-      "drive" : 0,
-      "output" : 1
-    };
   };
 
   Synthy.Patch.prototype = {
     save : function() {
+      var _export = {};
 
+      for (var key in this) {
+        if (this.hasOwnProperty(key)) {
+          _export[key] = this[key];
+        }
+      }
+
+      return JSON.stringify(_export);
     },
     setOscProperty : function(osc, prop, value) {
       this.osc[osc][prop] = value;
@@ -53,16 +30,18 @@ var Synthy = (function() {
     setFilterProperty : function(prop, value) {
       this.filter[prop] = value;
     },
-    setVolumeEnvelope : function(A, D, S, R) {
-      this.volumeEnv.A = A;
-      this.volumeEnv.D = D;
-      this.volumeEnv.S = S;
-      this.volumeEnv.R = R;
-    },
     setMaster : function(prop, value) {
       this.master[prop] = value;
     }
   };
+
+  var envProps = ["attack", "decay", "sustain", "release"];
+
+  envProps.forEach(function(p) {
+    Synthy.Patch.prototype["setEnvelope" + _toTitleCase(p)] = function(v) {
+      this.envelope[p] = v;
+    }
+  });
 
   return Synthy;
 

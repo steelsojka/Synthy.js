@@ -1,14 +1,19 @@
 var fs = require('fs');
 var exec = require('child_process').exec;
+var wrench = require('wrench');
+
 var version = 0.1;
 var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["Synthy.Core.js",
+               "Synthy.Util.js",
                "Synthy.Osc.js",
                "Synthy.Envelope.js",
                "Synthy.Filter.js",
                "Synthy.Master.js",
                "Synthy.Voice.js",
-               "Synthy.Patch.js"
+               "Synthy.Patch.js",
+               "Synthy.Drive.js",
+               "Synthy.Delay.js"
               ];
 
 var header = ["/**", 
@@ -79,6 +84,7 @@ clean(function() {
       prependHeader("dist/Synthy.js", function() {
 
       });
+      wrench.copyDirSyncRecursive('src/patches', 'dist/patches');
     });
   });
 

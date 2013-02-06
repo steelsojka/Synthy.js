@@ -1,13 +1,14 @@
 var Synthy = (function(Synthy) {
 
-  Synthy.Filter = function(patch, freq) {
+  Synthy.Filter = function(patch, note, context) {
 
-    this.filter = Synthy.context.createBiquadFilter();
+    this.context = context;
+    this.filter = context.createBiquadFilter();
 
     this.filter.frequency.value = patch.cutoff;
     this.filter.Q.value         = patch.q;
     this.filter.type            = patch.type;
-    this.freq                   = freq;
+    this.freq                   = Synthy.Util.noteToFreq(note);
     this.env                    = patch.env;
     this.patch                  = patch;
 
@@ -17,22 +18,22 @@ var Synthy = (function(Synthy) {
   Synthy.Filter.prototype = {
     trigger : function() {
       var patch = this.patch;
-      var now = Synthy.context.currentTime;
+      var now = this.context.currentTime;
       var freq = this.filter.frequency;
   
       this.startLevel = this.frequencyFromCutoff(patch.cutoff / 100);
       this.attackLevel = this.frequencyFromCutoff((patch.cutoff / 100) + (this.env  / 120));
       this.sustainLevel = this.frequencyFromCutoff((patch.cutoff / 100) + 
-                                             ((this.env  / 120) * (patch.S / 100)));
-      this.attackEnd = now + (patch.A / 20);
+                                             ((this.env  / 120) * (patch.sustain / 100)));
+      this.attackEnd = now + (patch.attack / 20);
 
       freq.value = this.startLevel;
       freq.setValueAtTime(this.startLevel, now);
       freq.linearRampToValueAtTime(this.attackLevel, this.attackEnd);
-      freq.setTargetValueAtTime(this.sustainLevel, this.attackEnd, patch.D / 100);
+      freq.setTargetValueAtTime(this.sustainLevel, this.attackEnd, patch.decay / 100);
     },
     frequencyFromCutoff : function(cutoff) {
-      var ny = 0.5 * Synthy.context.sampleRate;
+      var ny = 0.5 * this.context.sampleRate;
       var freq = Math.pow(2, (9 * cutoff) - 1) * this.freq;
       if (freq > ny) {
         freq = ny;
@@ -40,12 +41,12 @@ var Synthy = (function(Synthy) {
       return freq;
     },
     release : function() {
-      var now = Synthy.context.currentTime;
+      var now = this.context.currentTime;
       var freq = this.filter.frequency;
 
       freq.cancelScheduledValues(now);
       freq.setValueAtTime(freq.value, now);
-      freq.linearRampToValueAtTime(this.startLevel, now + (this.patch.R / 100));
+      freq.linearRampToValueAtTime(this.startLevel, now + (this.patch.release / 100));
     }
   };
 

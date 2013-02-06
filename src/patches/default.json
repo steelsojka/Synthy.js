@@ -1,0 +1,60 @@
+{
+	"name" : "Default",
+	"osc" : [
+		{
+			"mod" : {
+				"rate" : 0,
+				"mix" : 0,
+				"type" : 1
+			},
+			"range" : 0,
+			"detune" : -2,
+			"mix" : 1,
+			"type" : 1,
+			"harmony" : 5
+		},
+		{
+			"mod" : {
+				"rate" : 0,
+				"mix" : 0,
+				"type" : 1
+			},
+			"range" : 0,
+			"detune" : 0,
+			"mix" : 1,
+			"type" : 1,
+			"harmony" : 0
+		}
+	],
+	"filter" : {
+		"cutoff" : 0,
+	  "q" : 5,
+    "mod" : 10,
+    "type" : 0,
+    "env" : 67,
+    "attack" : 10,
+    "decay" : 0,
+    "sustain" : 100,
+    "release" : 0
+	},
+	"envelope" : {
+		"attack" : 0,
+    "decay" : 10,
+    "sustain" : 100,
+    "release" : 0
+	},
+	"fx" : {
+		"delay" : {
+			"time" : 0.2,
+			"wet" : 0.5,
+			"feedback" :0.5
+		},
+		"drive" : {
+			"drive" : 0.5,
+			"mix" : 0.5
+		}
+	},
+	"master" : {
+		"output" : 1
+	}
+}
