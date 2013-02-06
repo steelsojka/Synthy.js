@@ -7,7 +7,16 @@ var Synthy = (function(Synthy) {
     this.output.gain.value = patch.output;
   };
 
-  Synthy.Master.prototype = {};
+  Synthy.Master.prototype = {
+  	setGain : function(v) {
+  		this.output.gain.value = v;
+  	},
+  	getValues : function() {
+  		return {
+  			output : this.output.gain.value
+  		}
+  	}
+  };
 
   return Synthy;
 

@@ -16,19 +16,26 @@ var Synthy = (function(Synthy) {
 		this.input.connect(this.output);
 
 		this.setFeedback(patch.feedback);
-		this.setDelayTime(patch.time);
-		this.setWet(patch.wet);
+		this.setTime(patch.time);
+		this.setMix(patch.wet);
 	};
 
 	Synthy.Delay.prototype = {
 		setFeedback : function(v) {
 			this.gain.gain.value = v;
 		},
-		setDelayTime : function(t) {
+		setTime : function(t) {
 			this.delay.delayTime.value = t;
 		},
-		setWet : function(w) {
+		setMix : function(w) {
 			this.delayGain.gain.value = w;
+		},
+		getValues : function() {
+			return {
+				feedback : this.gain.gain.value,
+				time : this.delay.delayTime.value,
+				wet : this.delayGain.gain.value
+			}
 		}
 	};
 

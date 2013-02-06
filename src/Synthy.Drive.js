@@ -27,18 +27,27 @@ var Synthy = (function(Synthy) {
     this.drive.connect(this.driveOutput);
     this.driveOutput.connect(this.output);
 
-    this.setDrive(patch.drive);
+    this.setAmount(patch.drive);
     this.setMix(patch.mix);
   };
 
   Synthy.Drive.prototype = {
-    setDrive : function(a) {
+    setAmount : function(a) {
+      this.amount = a;
       this.drive.curve = getCurve.call(this, a);
     },
     setMix : function(a) {
       this.driveOutput.gain.value = a;
+    },
+    getValues : function() {
+      return {
+        drive : this.amount,
+        mix : this.driveOutput.gain.value
+      }
     }
   };
+
+
 
   return Synthy;
 

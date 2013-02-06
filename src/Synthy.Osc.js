@@ -30,7 +30,7 @@ var Synthy = (function() {
     },
     release : function(time) {
       var now = this.context.currentTime;
-
+      
       this.modOsc.stop(now + time);
       this.osc.stop(now + time);
     },

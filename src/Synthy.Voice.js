@@ -3,11 +3,8 @@ var Synthy = (function() {
   Synthy.Voice = function(noteNumber, patch, context) {
     this.osc = [];
 
-    this.master   = new Synthy.Master(patch.master, context);
     this.envelope = new Synthy.Envelope(patch.envelope, context);
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
-    this.delay    = new Synthy.Delay(patch.fx.delay, context);
-    this.drive    = new Synthy.Drive(patch.fx.drive, context);
 
     for (var i = 0, _len = patch.osc.length; i < _len; i++) {
       this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, context));
@@ -15,10 +12,7 @@ var Synthy = (function() {
     }
 
     this.filter.output.connect(this.envelope.input);
-    this.envelope.output.connect(this.drive.input);
-    this.drive.output.connect(this.delay.input);
-    this.delay.output.connect(this.master.input);
-    this.master.output.connect(context.destination);
+    this.output = this.envelope.input;
   };
 
   Synthy.Voice.prototype = {
@@ -30,11 +24,16 @@ var Synthy = (function() {
       this.envelope.trigger();
     },
     release : function() {
+      var end = this.envelope.getReleaseTime();
       this.envelope.release();
       this.filter.release();
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].release(this.envelope.getReleaseTime());
+        this.osc[i].release(end);
       }
+      // setTimeout(this.destroy.bind(this), end * 1000);
+    },
+    destroy : function() {
+      this.output.disconnect(0);
     },
     kill : function() {
       for (var i = 0, _len = this.osc.length; i < _len; i++) {

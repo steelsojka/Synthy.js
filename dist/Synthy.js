@@ -15,9 +15,6 @@ var Synthy = (function(Synthy) {
     this._voices = {};
 
     this.load(options.patch);
-
-    // this.master = new Synthy.Master(this.patch.master);
-    // this.master.output.connect(this.context.destination);
   };
 
 
@@ -26,6 +23,8 @@ var Synthy = (function(Synthy) {
       if (!this.patch || noteNumber in this._voices) return;
 
       var voice = new Synthy.Voice(noteNumber, this.patch, this.context);
+
+      voice.output.connect(this.drive.input);
       this._voices[noteNumber] = voice;
       voice.trigger();
     },
@@ -43,12 +42,40 @@ var Synthy = (function(Synthy) {
     load : function(patch) {
       if (!patch) return;
 
-      this.patch = new Synthy.Patch(patch);
+      this.patch  = new Synthy.Patch(patch);
+      this.delay  = new Synthy.Delay(this.patch.fx.delay, this.context);
+      this.drive  = new Synthy.Drive(this.patch.fx.drive, this.context);
+      this.master = new Synthy.Master(this.patch.master, this.context);
+
+      this.drive.output.connect(this.delay.input);
+      this.delay.output.connect(this.master.input);
+      this.master.output.connect(this.context.destination);
     },
     save : function() {
+      this.patch.fx.delay = this.delay.getValues();
+      this.patch.fx.drive = this.drive.getValues();
+      this.patch.master   = this.master.getValues();
       return this.patch.save();
     }
   };
+
+  ["setFeedback", "setTime", "setMix"].forEach(function(prop) {
+    Synthy.Core.prototype[prop.replace("set", "setDelay")] = function() {
+      this.delay[prop].apply(this.delay, arguments);
+    };
+  });
+
+  ["setAmount", "setMix"].forEach(function(prop) {
+    Synthy.Core.prototype[prop.replace("set", "setDrive")] = function() {
+      this.drive[prop].apply(this.drive, arguments);
+    };
+  });
+
+  ["setGain"].forEach(function(prop) {
+    Synthy.Core.prototype[prop.replace("set", "setMaster")] = function() {
+      this.master[prop].apply(this.master, arguments);
+    };
+  });
 
   Synthy.create = function(_options) {
     return new Synthy.Core(_options);
@@ -98,7 +125,7 @@ var Synthy = (function(Synthy) {
     },
     release : function(time) {
       var now = this.context.currentTime;
-
+      
       this.modOsc.stop(now + time);
       this.osc.stop(now + time);
     },
@@ -208,7 +235,16 @@ var Synthy = (function(Synthy) {
     this.output.gain.value = patch.output;
   };
 
-  Synthy.Master.prototype = {};
+  Synthy.Master.prototype = {
+  	setGain : function(v) {
+  		this.output.gain.value = v;
+  	},
+  	getValues : function() {
+  		return {
+  			output : this.output.gain.value
+  		}
+  	}
+  };
 
   return Synthy;
 
@@ -217,11 +253,8 @@ var Synthy = (function(Synthy) {
   Synthy.Voice = function(noteNumber, patch, context) {
     this.osc = [];
 
-    this.master   = new Synthy.Master(patch.master, context);
     this.envelope = new Synthy.Envelope(patch.envelope, context);
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
-    this.delay    = new Synthy.Delay(patch.fx.delay, context);
-    this.drive    = new Synthy.Drive(patch.fx.drive, context);
 
     for (var i = 0, _len = patch.osc.length; i < _len; i++) {
       this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, context));
@@ -229,10 +262,7 @@ var Synthy = (function(Synthy) {
     }
 
     this.filter.output.connect(this.envelope.input);
-    this.envelope.output.connect(this.drive.input);
-    this.drive.output.connect(this.delay.input);
-    this.delay.output.connect(this.master.input);
-    this.master.output.connect(context.destination);
+    this.output = this.envelope.input;
   };
 
   Synthy.Voice.prototype = {
@@ -244,11 +274,16 @@ var Synthy = (function(Synthy) {
       this.envelope.trigger();
     },
     release : function() {
+      var end = this.envelope.getReleaseTime();
       this.envelope.release();
       this.filter.release();
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].release(this.envelope.getReleaseTime());
+        this.osc[i].release(end);
       }
+      // setTimeout(this.destroy.bind(this), end * 1000);
+    },
+    destroy : function() {
+      this.output.disconnect(0);
     },
     kill : function() {
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
@@ -335,18 +370,27 @@ var Synthy = (function(Synthy) {
     this.drive.connect(this.driveOutput);
     this.driveOutput.connect(this.output);
 
-    this.setDrive(patch.drive);
+    this.setAmount(patch.drive);
     this.setMix(patch.mix);
   };
 
   Synthy.Drive.prototype = {
-    setDrive : function(a) {
+    setAmount : function(a) {
+      this.amount = a;
       this.drive.curve = getCurve.call(this, a);
     },
     setMix : function(a) {
       this.driveOutput.gain.value = a;
+    },
+    getValues : function() {
+      return {
+        drive : this.amount,
+        mix : this.driveOutput.gain.value
+      }
     }
   };
+
+
 
   return Synthy;
 
@@ -368,19 +412,26 @@ var Synthy = (function(Synthy) {
 		this.input.connect(this.output);
 
 		this.setFeedback(patch.feedback);
-		this.setDelayTime(patch.time);
-		this.setWet(patch.wet);
+		this.setTime(patch.time);
+		this.setMix(patch.wet);
 	};
 
 	Synthy.Delay.prototype = {
 		setFeedback : function(v) {
 			this.gain.gain.value = v;
 		},
-		setDelayTime : function(t) {
+		setTime : function(t) {
 			this.delay.delayTime.value = t;
 		},
-		setWet : function(w) {
+		setMix : function(w) {
 			this.delayGain.gain.value = w;
+		},
+		getValues : function() {
+			return {
+				feedback : this.gain.gain.value,
+				time : this.delay.delayTime.value,
+				wet : this.delayGain.gain.value
+			}
 		}
 	};
 
