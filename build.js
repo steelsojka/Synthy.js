@@ -13,7 +13,8 @@ var jsFiles = ["Synthy.Core.js",
                "Synthy.Voice.js",
                "Synthy.Patch.js",
                "Synthy.Drive.js",
-               "Synthy.Delay.js"
+               "Synthy.Delay.js",
+               "Synthy.KeyToMidi.js"
               ];
 
 var header = ["/**", 

@@ -2,13 +2,22 @@ var Synthy = (function() {
 
   Synthy.Voice = function(noteNumber, patch, context) {
     this.osc = [];
+    this.driveFx = [];
 
     this.envelope = new Synthy.Envelope(patch.envelope, context);
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
 
     for (var i = 0, _len = patch.osc.length; i < _len; i++) {
       this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, context));
-      this.osc[i].output.connect(this.filter.input);
+      
+      this.driveFx.push(new Synthy.Drive({
+        "drive" : patch.osc[i].driveAmount,
+        "mix" : patch.osc[i].driveMix,
+        "type" : patch.osc[i].driveType
+      }, context));
+
+      this.osc[i].output.connect(this.driveFx[i].input);
+      this.driveFx[i].output.connect(this.filter.input);
     }
 
     this.filter.output.connect(this.envelope.input);
@@ -30,7 +39,7 @@ var Synthy = (function() {
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
         this.osc[i].release(end);
       }
-      // setTimeout(this.destroy.bind(this), end * 1000);
+      setTimeout(this.destroy.bind(this), end * 1000);
     },
     destroy : function() {
       this.output.disconnect(0);

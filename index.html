@@ -22,8 +22,9 @@
     window.addEventListener('DOMContentLoaded', function() {
       window.synth = Synthy.create();
 
-      $.get('src/patches/square.json', function(patch) {
+      $.get('src/patches/default.json', function(patch) {
         synth.load(patch);
+        synth.setMasterGain(0.5);
       });
 
       $(window).on('keydown', function(e) {

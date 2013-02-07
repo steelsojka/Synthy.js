@@ -9,7 +9,7 @@ var Synthy = (function(Synthy) {
     this.filter.Q.value         = patch.q;
     this.filter.type            = patch.type;
     this.freq                   = Synthy.Util.noteToFreq(note);
-    this.env                    = patch.env;
+    this.env                    = patch.envelope;
     this.patch                  = patch;
 
     this.input = this.output = this.filter;

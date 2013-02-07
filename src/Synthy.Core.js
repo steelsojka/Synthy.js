@@ -1,5 +1,9 @@
 var Synthy = (function(Synthy) {
 
+  var _camelCase = function(string) {
+    return string.charAt(0).toLowerCase() + string.slice(1);
+  };
+
   Synthy.Core = function(_options) {
     var options = _options || {};
 
@@ -43,13 +47,18 @@ var Synthy = (function(Synthy) {
       this.delay.output.connect(this.master.input);
       this.master.output.connect(this.context.destination);
     },
-    save : function() {
+    save : function(spaces) {
       this.patch.fx.delay = this.delay.getValues();
       this.patch.fx.drive = this.drive.getValues();
       this.patch.master   = this.master.getValues();
-      return this.patch.save();
+      return this.patch.save(spaces);
+    },
+    addOscillator : function(settings) {
+      this.patch.addOscillator(settings);
     }
   };
+
+  // A quicker way of adding prototype methods in bulk that perform similar functions
 
   ["setFeedback", "setTime", "setMix"].forEach(function(prop) {
     Synthy.Core.prototype[prop.replace("set", "setDelay")] = function() {
@@ -57,7 +66,7 @@ var Synthy = (function(Synthy) {
     };
   });
 
-  ["setAmount", "setMix"].forEach(function(prop) {
+  ["setAmount", "setMix", "setType"].forEach(function(prop) {
     Synthy.Core.prototype[prop.replace("set", "setDrive")] = function() {
       this.drive[prop].apply(this.drive, arguments);
     };
@@ -68,6 +77,27 @@ var Synthy = (function(Synthy) {
       this.master[prop].apply(this.master, arguments);
     };
   });
+
+  ["Cutoff", "Q", "Modulation", "Type", "Envelope", "Attack", "Decay", "Sustain", "Release"].forEach(function(prop) {
+    Synthy.Core.prototype["setFilter" + prop] = function(v) {
+      this.patch.setFilterProperty(prop.toLowerCase(), v);
+    }
+  });
+
+  ["Attack", "Decay", "Sustain", "Release"].forEach(function(prop) {
+    Synthy.Core.prototype["setEnvelope" + prop] = function(v) {
+      this.patch.setEnvelopeProperty(prop.toLowerCase(), v);
+    }
+  });
+
+  ["ModRate", "ModMix", "ModType", "Range", "Detune", "Mix", "Type", "Harmony", 
+   "DriveAmount", "DriveMix", "DriveType"].forEach(function(prop) {
+    Synthy.Core.prototype["setOsc" + prop] = function(osc, v) {
+      this.patch.setOscillatorProperty(osc, _camelCase(prop), v);
+    }
+  });
+
+
 
   Synthy.create = function(_options) {
     return new Synthy.Core(_options);

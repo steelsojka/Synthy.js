@@ -2,36 +2,38 @@
 	"name" : "Default",
 	"osc" : [
 		{
-			"mod" : {
-				"rate" : 0,
-				"mix" : 0,
-				"type" : 1
-			},
+			"modRate" : 0,
+			"modMix" : 0,
+			"modType" : 1,
 			"range" : 0,
 			"detune" : -2,
 			"mix" : 1,
 			"type" : 1,
-			"harmony" : 5
+			"harmony" : 5,
+			"driveAmount" : 0,
+      "driveMix" : 0,
+      "driveType" : 0
 		},
 		{
-			"mod" : {
-				"rate" : 0,
-				"mix" : 0,
-				"type" : 1
-			},
+			"modRate" : 0,
+			"modMix" : 0,
+			"modType" : 1,
 			"range" : 0,
 			"detune" : 0,
 			"mix" : 1,
 			"type" : 1,
-			"harmony" : 0
+			"harmony" : 0,
+			"driveAmount" : 0,
+      "driveMix" : 0,
+      "driveType" : 0
 		}
 	],
 	"filter" : {
 		"cutoff" : 0,
 	  "q" : 5,
-    "mod" : 10,
+    "modulation" : 10,
     "type" : 0,
-    "env" : 67,
+    "envelope" : 67,
     "attack" : 10,
     "decay" : 0,
     "sustain" : 100,
@@ -51,7 +53,8 @@
 		},
 		"drive" : {
 			"drive" : 0.5,
-			"mix" : 0.5
+			"mix" : 0.5,
+			"type" : 0
 		}
 	},
 	"master" : {
