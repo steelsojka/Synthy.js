@@ -1,0 +1,50 @@
+{
+  "name" : "Deep",
+  "osc" : [
+    {
+      "modRate" : 0,
+      "modMix" : 0,
+      "modType" : 1,
+      "range" : 0,
+      "detune" : 0,
+      "mix" : 1,
+      "type" : 1,
+      "harmony" : 0,
+      "driveAmount" : 0.99,
+      "driveMix" : 1,
+      "driveType" : 0
+    }
+  ],
+  "filter" : {
+    "cutoff" : 100,
+    "q" : 5,
+    "modulation" : 10,
+    "type" : 0,
+    "envelope" : 0,
+    "attack" : 10,
+    "decay" : 0,
+    "sustain" : 100,
+    "release" : 0
+  },
+  "envelope" : {
+    "attack" : 0,
+    "decay" : 10,
+    "sustain" : 1,
+    "release" : 1
+  },
+  "fx" : {
+    "delay" : {
+      "time" : 0.2,
+      "wet" : 0,
+      "feedback" : 0.5
+    },
+    "drive" : {
+      "drive" : 0.5,
+      "mix" : 0,
+      "type" : 0
+    }
+  },
+  "master" : {
+    "output" : 1
+  }
+}
