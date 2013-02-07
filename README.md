@@ -101,6 +101,8 @@ mySynth.save(2); // Optional JSON space formating
 This is the schematic for a Synthy core with 3 oscillators.
 
 
+![Screenshot](https://bitbucket.org/steelsojka/synthy.js/raw/ef1a498622a28ca8c2d5935ca5193493c2707762/docs/schematic.png)
+
 License
 ---------------------------
 MIT Licensed
