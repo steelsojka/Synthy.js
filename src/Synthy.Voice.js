@@ -1,6 +1,9 @@
 var Synthy = (function() {
 
-  Synthy.Voice = function(noteNumber, patch, context) {
+  Synthy.Voice = function(params, patch, context) {
+    var noteNumber = params.noteNumber;
+    var velocity = params.velocity || 127;
+
     this.osc = [];
     this.driveFx = [];
 
@@ -8,7 +11,7 @@ var Synthy = (function() {
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
 
     for (var i = 0, _len = patch.osc.length; i < _len; i++) {
-      this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, context));
+      this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, velocity, context));
       
       this.driveFx.push(new Synthy.Drive({
         "drive" : patch.osc[i].driveAmount,

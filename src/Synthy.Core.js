@@ -15,10 +15,13 @@ var Synthy = (function(Synthy) {
 
 
   Synthy.Core.prototype = {
-    trigger : function(noteNumber) {
+    trigger : function(noteNumber, velocity) {
       if (!this.patch || noteNumber in this._voices) return;
 
-      var voice = new Synthy.Voice(noteNumber, this.patch, this.context);
+      var voice = new Synthy.Voice({
+        noteNumber : noteNumber,
+        velocity : velocity
+      }, this.patch, this.context);
 
       voice.output.connect(this.drive.input);
       this._voices[noteNumber] = voice;

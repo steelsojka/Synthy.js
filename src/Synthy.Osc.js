@@ -1,16 +1,18 @@
 var Synthy = (function() {
 
-  Synthy.Osc = function(patch, note, context) {
+  Synthy.Osc = function(patch, note, velocity, context) {
     this.context = context;
     this.modOsc  = context.createOscillator();
     this.tremelo = context.createGainNode();
     this.osc     = context.createOscillator();
     this.mix     = context.createGainNode();
-    this.gate    = context.createOscillator();
-    this.gateGain = context.createGainNode();
+    // this.gate    = context.createOscillator();
+    // this.gateGain = context.createGainNode();
+    this.vGain = context.createGainNode();
     this.output  = this.mix;
 
-    this.osc.connect(this.mix);
+    this.osc.connect(this.vGain);
+    this.vGain.connect(this.mix);
 
     // this.gate.connect(this.gateGain);
     // this.gateGain.connect(this.mix.gain);
@@ -27,6 +29,7 @@ var Synthy = (function() {
     this.osc.detune.value       = patch.detune;
     this.osc.type               = patch.type;
     this.mix.gain.value         = patch.mix;
+    this.vGain.gain.value       = velocity / 127;
     // this.gate.type              = patch.gateType;
     // this.gate.frequency.value   = patch.gateRate;
     // this.gateGain.gain.value    = patch.gateMix;

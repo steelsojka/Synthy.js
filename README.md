@@ -45,6 +45,8 @@ Synthy works off MIDI notes for note triggering.
 var mySynth = Synthy.create();
 
 mySynth.trigger(62); // MIDI note 62.  Range from 0 - 127
+
+mySynth.trigger(62, 78); // Pass in note velocity as a second parameter. Defaults to 127.
 ```
 
 Notes don't stop until the release method is called for the same MIDI note.

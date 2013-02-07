@@ -23,10 +23,13 @@ var Synthy = (function(Synthy) {
 
 
   Synthy.Core.prototype = {
-    trigger : function(noteNumber) {
+    trigger : function(noteNumber, velocity) {
       if (!this.patch || noteNumber in this._voices) return;
 
-      var voice = new Synthy.Voice(noteNumber, this.patch, this.context);
+      var voice = new Synthy.Voice({
+        noteNumber : noteNumber,
+        velocity : velocity
+      }, this.patch, this.context);
 
       voice.output.connect(this.drive.input);
       this._voices[noteNumber] = voice;
@@ -125,17 +128,19 @@ var Synthy = (function(Synthy) {
 
 }(Synthy || {}));var Synthy = (function() {
 
-  Synthy.Osc = function(patch, note, context) {
+  Synthy.Osc = function(patch, note, velocity, context) {
     this.context = context;
     this.modOsc  = context.createOscillator();
     this.tremelo = context.createGainNode();
     this.osc     = context.createOscillator();
     this.mix     = context.createGainNode();
-    this.gate    = context.createOscillator();
-    this.gateGain = context.createGainNode();
+    // this.gate    = context.createOscillator();
+    // this.gateGain = context.createGainNode();
+    this.vGain = context.createGainNode();
     this.output  = this.mix;
 
-    this.osc.connect(this.mix);
+    this.osc.connect(this.vGain);
+    this.vGain.connect(this.mix);
 
     // this.gate.connect(this.gateGain);
     // this.gateGain.connect(this.mix.gain);
@@ -152,6 +157,7 @@ var Synthy = (function(Synthy) {
     this.osc.detune.value       = patch.detune;
     this.osc.type               = patch.type;
     this.mix.gain.value         = patch.mix;
+    this.vGain.gain.value       = velocity / 127;
     // this.gate.type              = patch.gateType;
     // this.gate.frequency.value   = patch.gateRate;
     // this.gateGain.gain.value    = patch.gateMix;
@@ -289,7 +295,10 @@ var Synthy = (function(Synthy) {
 
 }(Synthy || {}));var Synthy = (function() {
 
-  Synthy.Voice = function(noteNumber, patch, context) {
+  Synthy.Voice = function(params, patch, context) {
+    var noteNumber = params.noteNumber;
+    var velocity = params.velocity || 127;
+
     this.osc = [];
     this.driveFx = [];
 
@@ -297,7 +306,7 @@ var Synthy = (function(Synthy) {
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
 
     for (var i = 0, _len = patch.osc.length; i < _len; i++) {
-      this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, context));
+      this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, velocity, context));
       
       this.driveFx.push(new Synthy.Drive({
         "drive" : patch.osc[i].driveAmount,
