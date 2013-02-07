@@ -96,6 +96,11 @@ mySynth.save(); // Returns a JSON string of the current patch.
 mySynth.save(2); // Optional JSON space formating
 ```
 
+### Schematic
+
+This is the schematic for a Synthy core with 3 oscillators.
+
+
 License
 ---------------------------
 MIT Licensed
