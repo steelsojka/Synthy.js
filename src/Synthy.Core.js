@@ -15,7 +15,7 @@ var Synthy = (function(Synthy) {
 
 
   Synthy.Core.prototype = {
-    trigger : function(noteNumber, velocity) {
+    trigger : function(noteNumber, velocity, time) {
       if (!this.patch || noteNumber in this._voices) return;
 
       var voice = new Synthy.Voice({
@@ -25,12 +25,12 @@ var Synthy = (function(Synthy) {
 
       voice.output.connect(this.drive.input);
       this._voices[noteNumber] = voice;
-      voice.trigger();
+      voice.trigger(time);
     },
-    release : function(noteNumber) {
+    release : function(noteNumber, time) {
       if (!(noteNumber in this._voices)) return;
 
-      this._voices[noteNumber].release();
+      this._voices[noteNumber].release(time);
       delete this._voices[noteNumber];
     },
     kill : function() {

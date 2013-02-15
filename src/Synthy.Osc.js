@@ -36,15 +36,14 @@ var Synthy = (function() {
   };
 
   Synthy.Osc.prototype = {
-    trigger : function() {
-      this.modOsc.start(0);
-      this.osc.start(0);
+    trigger : function(time) {
+      if (time == null) time = 0;
+      this.modOsc.start(time);
+      this.osc.start(time);
     },
-    release : function(time) {
-      var now = this.context.currentTime;
-      
-      this.modOsc.stop(now + time);
-      this.osc.stop(now + time);
+    release : function(time) {      
+      this.modOsc.stop(time);
+      this.osc.stop(time);
     },
     kill : function() {
       this.modOsc.stop(0);

@@ -28,26 +28,31 @@ var Synthy = (function() {
   };
 
   Synthy.Voice.prototype = {
-    trigger : function() {
+    trigger : function(time) {
+      if (time == null) time = 0;
+
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].trigger();
+          this.osc[i].trigger(time);
       }
-      this.filter.trigger();
-      this.envelope.trigger();
+      this.filter.trigger(time);
+      this.envelope.trigger(time);
     },
-    release : function() {
+    release : function(time) {
       var end = this.envelope.getReleaseTime();
-      this.envelope.release();
-      this.filter.release();
+      var _time = time || 0;
+
+      this.envelope.release(time);
+      this.filter.release(time);
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].release(end);
+        this.osc[i].release(_time + end);
       }
-      setTimeout(this.destroy.bind(this), end * 1000);
+      this.timeout = setTimeout(this.destroy.bind(this), (_time + end) * 1000);
     },
     destroy : function() {
       this.output.disconnect(0);
     },
     kill : function() {
+      clearTimeout(this.timeout);
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
         this.osc[i].kill();
       }

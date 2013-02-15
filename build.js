@@ -2,7 +2,7 @@ var fs = require('fs');
 var exec = require('child_process').exec;
 var wrench = require('wrench');
 
-var version = 0.1;
+var version = "0.1.1";
 var CLOSURE_PATH = "build/compiler.jar";
 var jsFiles = ["Synthy.Core.js",
                "Synthy.Util.js",

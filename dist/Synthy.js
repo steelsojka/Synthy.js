@@ -1,8 +1,8 @@
 /**
- * Synthy.js v0.1
+ * Synthy.js v0.1.1
  *
  * A polyphonic customizable synthesizer
- * @author Steven Sojka - Thursday, February 07, 2013
+ * @author Steven Sojka - Friday, February 15, 2013
  *
  * MIT Licensed
  */
@@ -23,7 +23,7 @@ var Synthy = (function(Synthy) {
 
 
   Synthy.Core.prototype = {
-    trigger : function(noteNumber, velocity) {
+    trigger : function(noteNumber, velocity, time) {
       if (!this.patch || noteNumber in this._voices) return;
 
       var voice = new Synthy.Voice({
@@ -33,12 +33,12 @@ var Synthy = (function(Synthy) {
 
       voice.output.connect(this.drive.input);
       this._voices[noteNumber] = voice;
-      voice.trigger();
+      voice.trigger(time);
     },
-    release : function(noteNumber) {
+    release : function(noteNumber, time) {
       if (!(noteNumber in this._voices)) return;
 
-      this._voices[noteNumber].release();
+      this._voices[noteNumber].release(time);
       delete this._voices[noteNumber];
     },
     kill : function() {
@@ -164,15 +164,14 @@ var Synthy = (function(Synthy) {
   };
 
   Synthy.Osc.prototype = {
-    trigger : function() {
-      this.modOsc.start(0);
-      this.osc.start(0);
+    trigger : function(time) {
+      if (time == null) time = 0;
+      this.modOsc.start(time);
+      this.osc.start(time);
     },
-    release : function(time) {
-      var now = this.context.currentTime;
-      
-      this.modOsc.stop(now + time);
-      this.osc.stop(now + time);
+    release : function(time) {      
+      this.modOsc.stop(time);
+      this.osc.stop(time);
     },
     kill : function() {
       this.modOsc.stop(0);
@@ -193,8 +192,8 @@ var Synthy = (function(Synthy) {
   };
 
   Synthy.Envelope.prototype = {
-    trigger : function() {
-      var now = this.context.currentTime;
+    trigger : function(time) {
+      var now = time || this.context.currentTime;
       var gain = this.envelope.gain;
       var attackEnd = now + this.patch.attack / 10;
 
@@ -202,8 +201,8 @@ var Synthy = (function(Synthy) {
       gain.linearRampToValueAtTime(1, attackEnd);
       gain.setTargetValueAtTime((this.patch.sustain / 100), attackEnd, (this.patch.decay / 100) + 0.001);
     },
-    release : function() {
-      var now = this.context.currentTime;
+    release : function(time) {
+      var now = time || this.context.currentTime;
       var gain = this.envelope.gain;
 
       gain.cancelScheduledValues(now);
@@ -235,9 +234,9 @@ var Synthy = (function(Synthy) {
   };
 
   Synthy.Filter.prototype = {
-    trigger : function() {
+    trigger : function(time) {
       var patch = this.patch;
-      var now = this.context.currentTime;
+      var now = time || this.context.currentTime;
       var freq = this.filter.frequency;
   
       this.startLevel = this.frequencyFromCutoff(patch.cutoff / 100);
@@ -259,8 +258,8 @@ var Synthy = (function(Synthy) {
       }
       return freq;
     },
-    release : function() {
-      var now = this.context.currentTime;
+    release : function(time) {
+      var now = time || this.context.currentTime;
       var freq = this.filter.frequency;
 
       freq.cancelScheduledValues(now);
@@ -323,26 +322,31 @@ var Synthy = (function(Synthy) {
   };
 
   Synthy.Voice.prototype = {
-    trigger : function() {
+    trigger : function(time) {
+      if (time == null) time = 0;
+
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].trigger();
+          this.osc[i].trigger(time);
       }
-      this.filter.trigger();
-      this.envelope.trigger();
+      this.filter.trigger(time);
+      this.envelope.trigger(time);
     },
-    release : function() {
+    release : function(time) {
       var end = this.envelope.getReleaseTime();
-      this.envelope.release();
-      this.filter.release();
+      var _time = time || 0;
+
+      this.envelope.release(time);
+      this.filter.release(time);
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].release(end);
+        this.osc[i].release(_time + end);
       }
-      setTimeout(this.destroy.bind(this), end * 1000);
+      this.timeout = setTimeout(this.destroy.bind(this), (_time + end) * 1000);
     },
     destroy : function() {
       this.output.disconnect(0);
     },
     kill : function() {
+      clearTimeout(this.timeout);
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
         this.osc[i].kill();
       }

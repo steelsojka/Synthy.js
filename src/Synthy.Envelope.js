@@ -9,8 +9,8 @@ var Synthy = (function(Synthy) {
   };
 
   Synthy.Envelope.prototype = {
-    trigger : function() {
-      var now = this.context.currentTime;
+    trigger : function(time) {
+      var now = time || this.context.currentTime;
       var gain = this.envelope.gain;
       var attackEnd = now + this.patch.attack / 10;
 
@@ -18,8 +18,8 @@ var Synthy = (function(Synthy) {
       gain.linearRampToValueAtTime(1, attackEnd);
       gain.setTargetValueAtTime((this.patch.sustain / 100), attackEnd, (this.patch.decay / 100) + 0.001);
     },
-    release : function() {
-      var now = this.context.currentTime;
+    release : function(time) {
+      var now = time || this.context.currentTime;
       var gain = this.envelope.gain;
 
       gain.cancelScheduledValues(now);

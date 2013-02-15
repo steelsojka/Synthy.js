@@ -16,9 +16,9 @@ var Synthy = (function(Synthy) {
   };
 
   Synthy.Filter.prototype = {
-    trigger : function() {
+    trigger : function(time) {
       var patch = this.patch;
-      var now = this.context.currentTime;
+      var now = time || this.context.currentTime;
       var freq = this.filter.frequency;
   
       this.startLevel = this.frequencyFromCutoff(patch.cutoff / 100);
@@ -40,8 +40,8 @@ var Synthy = (function(Synthy) {
       }
       return freq;
     },
-    release : function() {
-      var now = this.context.currentTime;
+    release : function(time) {
+      var now = time || this.context.currentTime;
       var freq = this.filter.frequency;
 
       freq.cancelScheduledValues(now);
