@@ -9,6 +9,7 @@ var Synthy = (function(Synthy) {
 
     this.context = options.context || new webkitAudioContext();
     this._voices = {};
+    this.timer = new Synthy.AudioTimer(this.context);
 
     this.load(options.patch);
   };
@@ -18,14 +19,26 @@ var Synthy = (function(Synthy) {
     trigger : function(noteNumber, velocity, time) {
       if (!this.patch || noteNumber in this._voices) return;
 
+      var _this = this;
+      var _time = time;
+      var _velocity = velocity;
       var voice = new Synthy.Voice({
         noteNumber : noteNumber,
         velocity : velocity
       }, this.patch, this.context);
-
-      voice.output.connect(this.drive.input);
       this._voices[noteNumber] = voice;
-      voice.trigger(time);
+
+      /*
+       If we have to many nodes connected to the output at one time
+       The audio starts to degrade. This connects 10 ms before the note
+       is triggered 
+       */
+      this.timer.callbackAtTime(_time - 0.1, function(e) {
+        console.log(e.target.context.currentTime + " :: " + _time );
+        voice.output.connect(_this.drive.input);
+        voice.trigger(_time);
+      });
+      // this.connectionTimeout = setTimeout(, (_time - 10) * 1000);
     },
     release : function(noteNumber, time) {
       if (!(noteNumber in this._voices)) return;
@@ -60,6 +73,44 @@ var Synthy = (function(Synthy) {
       this.patch.addOscillator(settings);
     }
   };
+
+  // AudioTimer.js
+
+  (function(exports) {
+
+    var _checkCallbacks = function(e) {
+      var x = this._callbacks.length;
+      var _time = this.context.currentTime;
+      var callbacks = this._callbacks;
+      var callback, removed;
+      while (x--) {
+        callback = callbacks[x];
+        if (callback[0] <= _time) {
+          removed = callbacks.splice(callbacks.indexOf(callback), 1)[0];
+          removed[1](e);
+        }
+      }
+    };
+
+    var AudioTimer = function(context, buffer) {
+      if (buffer == null) buffer = 512;
+      this._callbacks = [];
+      this.context = context || new webkitAudioContext();
+      this.node = this.context.createScriptProcessor(buffer, 1, 1);
+      this.node.onaudioprocess = _checkCallbacks.bind(this);
+      this.node.connect(this.context.destination);
+    };
+
+    AudioTimer.prototype = {
+      callbackAtTime : function(time, callback) {
+        this._callbacks.push([time, callback]);
+      }
+    };
+
+    exports.AudioTimer = AudioTimer;
+
+  }(Synthy));
+
 
   // A quicker way of adding prototype methods in bulk that perform similar functions
 
