@@ -24,9 +24,17 @@ var Synthy = (function(Synthy) {
       var _velocity = velocity;
       var voice = new Synthy.Voice({
         noteNumber : noteNumber,
-        velocity : velocity
+        velocity : velocity,
+        timer : this.timer
       }, this.patch, this.context);
-      this._voices[noteNumber] = voice;
+
+      this.on('kill', voice.kill, voice);
+      
+      if (!this._voices[noteNumber]) {
+        this._voices[noteNumber] = [];
+      }
+      
+      this._voices[noteNumber].push(voice);
 
       /*
        If we have to many nodes connected to the output at one time
@@ -34,7 +42,7 @@ var Synthy = (function(Synthy) {
        is triggered 
        */
       this.timer.callbackAtTime(_time - 0.1, function(e) {
-        console.log(e.target.context.currentTime + " :: " + _time );
+        // console.log(e.target.context.currentTime + " :: " + _time );
         voice.output.connect(_this.drive.input);
         voice.trigger(_time);
       });
@@ -42,14 +50,25 @@ var Synthy = (function(Synthy) {
     },
     release : function(noteNumber, time) {
       if (!(noteNumber in this._voices)) return;
+      var voice = this._voices[noteNumber].pop();
+      var _this = this;
 
-      this._voices[noteNumber].release(time);
+      voice.release(time);
+
+      voice.on('destroy', function(e) {
+        _this.off('kill', voice.kill);
+      });
+
       delete this._voices[noteNumber];
     },
     kill : function() {
-      for (var osc in this._voices) {
-        this._voices[osc].kill();
-      }
+      this.emit('kill');
+      this.off('kill');
+      this.timer.clearCallbacks();
+      this._voices = {};
+      // for (var osc in this._voices) {
+      //   this._voices[osc].kill();
+      // }
     },
     load : function(patch) {
       if (!patch) return;
@@ -73,44 +92,6 @@ var Synthy = (function(Synthy) {
       this.patch.addOscillator(settings);
     }
   };
-
-  // AudioTimer.js
-
-  (function(exports) {
-
-    var _checkCallbacks = function(e) {
-      var x = this._callbacks.length;
-      var _time = this.context.currentTime;
-      var callbacks = this._callbacks;
-      var callback, removed;
-      while (x--) {
-        callback = callbacks[x];
-        if (callback[0] <= _time) {
-          removed = callbacks.splice(callbacks.indexOf(callback), 1)[0];
-          removed[1](e);
-        }
-      }
-    };
-
-    var AudioTimer = function(context, buffer) {
-      if (buffer == null) buffer = 512;
-      this._callbacks = [];
-      this.context = context || new webkitAudioContext();
-      this.node = this.context.createScriptProcessor(buffer, 1, 1);
-      this.node.onaudioprocess = _checkCallbacks.bind(this);
-      this.node.connect(this.context.destination);
-    };
-
-    AudioTimer.prototype = {
-      callbackAtTime : function(time, callback) {
-        this._callbacks.push([time, callback]);
-      }
-    };
-
-    exports.AudioTimer = AudioTimer;
-
-  }(Synthy));
-
 
   // A quicker way of adding prototype methods in bulk that perform similar functions
 
@@ -152,6 +133,7 @@ var Synthy = (function(Synthy) {
   });
 
 
+  Synthy.Emitter.register(Synthy.Core);
 
   Synthy.create = function(_options) {
     return new Synthy.Core(_options);

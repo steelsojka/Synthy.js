@@ -1,12 +1,53 @@
 /**
- * Synthy.js v0.1.1
+ * Synthy.js v0.2.0
  *
  * A polyphonic customizable synthesizer
- * @author Steven Sojka - Friday, February 15, 2013
+ * @author Steven Sojka - Monday, February 18, 2013
  *
  * MIT Licensed
  */
 var Synthy = (function(Synthy) {
+
+  Synthy.Emitter = function() {};
+
+  Synthy.Emitter.prototype = {
+    on : function(event, listener, context) {
+      var events = event.split(" ");
+      this.__events = this.__events || {};
+      for (var i = 0, _len = events.length; i < _len; i++) {
+        this.__events[events[i]] = this.__events[events[i]] || [];
+        this.__events[events[i]].push(context ? listener.bind(context) : listener);
+      }
+    },
+    off : function(event, listener) {
+      this.__events = this.__events || {};
+      if (!(event in this.__events)) return;
+      if (listener) {
+        this.__events[event].splice(this.__events[event].indexOf(listener), 1);
+      } else {
+        delete this.__events[event];
+      }
+    }, 
+    emit : function(event) {
+      this.__events = this.__events || {};
+      if (!(event in this.__events)) return;
+      for (var i = 0, _len = this.__events[event].length; i < _len; i++) {
+        this.__events[event][i].apply(this, Array.prototype.slice.call(arguments, 1));
+      }
+    }
+  };
+
+  Synthy.Emitter.register = function(obj) {
+    for (var key in Synthy.Emitter.prototype) {
+      if (Synthy.Emitter.prototype.hasOwnProperty(key)) {
+        obj.prototype[key] = Synthy.Emitter.prototype[key];
+      }
+    }
+  };
+
+  return Synthy;
+
+}(Synthy || {}));var Synthy = (function(Synthy) {
 
   var _camelCase = function(string) {
     return string.charAt(0).toLowerCase() + string.slice(1);
@@ -17,6 +58,7 @@ var Synthy = (function(Synthy) {
 
     this.context = options.context || new webkitAudioContext();
     this._voices = {};
+    this.timer = new Synthy.AudioTimer(this.context);
 
     this.load(options.patch);
   };
@@ -26,25 +68,56 @@ var Synthy = (function(Synthy) {
     trigger : function(noteNumber, velocity, time) {
       if (!this.patch || noteNumber in this._voices) return;
 
+      var _this = this;
+      var _time = time;
+      var _velocity = velocity;
       var voice = new Synthy.Voice({
         noteNumber : noteNumber,
-        velocity : velocity
+        velocity : velocity,
+        timer : this.timer
       }, this.patch, this.context);
 
-      voice.output.connect(this.drive.input);
-      this._voices[noteNumber] = voice;
-      voice.trigger(time);
+      this.on('kill', voice.kill, voice);
+      
+      if (!this._voices[noteNumber]) {
+        this._voices[noteNumber] = [];
+      }
+      
+      this._voices[noteNumber].push(voice);
+
+      /*
+       If we have to many nodes connected to the output at one time
+       The audio starts to degrade. This connects 10 ms before the note
+       is triggered 
+       */
+      this.timer.callbackAtTime(_time - 0.1, function(e) {
+        // 
+        voice.output.connect(_this.drive.input);
+        voice.trigger(_time);
+      });
+      // this.connectionTimeout = setTimeout(, (_time - 10) * 1000);
     },
     release : function(noteNumber, time) {
       if (!(noteNumber in this._voices)) return;
+      var voice = this._voices[noteNumber].pop();
+      var _this = this;
 
-      this._voices[noteNumber].release(time);
+      voice.release(time);
+
+      voice.on('destroy', function(e) {
+        _this.off('kill', voice.kill);
+      });
+
       delete this._voices[noteNumber];
     },
     kill : function() {
-      for (var osc in this._voices) {
-        this._voices[osc].kill();
-      }
+      this.emit('kill');
+      this.off('kill');
+      this.timer.clearCallbacks();
+      this._voices = {};
+      // for (var osc in this._voices) {
+      //   this._voices[osc].kill();
+      // }
     },
     load : function(patch) {
       if (!patch) return;
@@ -109,6 +182,7 @@ var Synthy = (function(Synthy) {
   });
 
 
+  Synthy.Emitter.register(Synthy.Core);
 
   Synthy.create = function(_options) {
     return new Synthy.Core(_options);
@@ -125,6 +199,67 @@ var Synthy = (function(Synthy) {
 	};
 
 	return Synthy;
+
+}(Synthy || {}));var Synthy = (function(exports) {
+
+  var _checkCallbacks = function(e) {
+    var x = this._callbacks.length;
+    var _time = this.context.currentTime;
+    var callbacks = this._callbacks;
+    var callback, removed;
+
+    while (x--) {
+      callback = callbacks[x];
+      if (callback[0] <= _time) {
+        removed = callbacks.splice(callbacks.indexOf(callback), 1)[0];
+        if (removed[2]) {
+          removed[1].call(removed[2], e);
+        } else {
+          removed[1](e);
+        }
+      }
+    }
+  };
+
+  var AudioTimer = function(context, buffer) {
+    if (buffer == null) buffer = 512;
+    this._callbacks = [];
+    this.context = context || new webkitAudioContext();
+    this.node = this.context.createScriptProcessor(buffer, 1, 1);
+    this.node.onaudioprocess = _checkCallbacks.bind(this);
+    this.node.connect(this.context.destination);
+  };
+
+  AudioTimer.prototype = {
+    callbackAtTime : function(time, callback, context) {
+      this._callbacks.push([time, callback, context]);
+    },
+    clearCallbacks : function() {
+      this._callbacks = [];
+    },
+    removeCallbackAtTime : function(callback, time) {
+      var callbacks = this._callbacks;
+      var x = callbacks.length;
+      var _callback;
+
+      while (x--) {
+        _callback = callbacks[x];
+        if (_callback[1] === callback) {
+          if (time !== undefined) {
+            if (time === _callback[0]) {
+              callbacks.splice(callbacks.indexOf(_callback), 1);
+            }
+          } else {
+            callbacks.splice(callbacks.indexOf(_callback), 1);
+          }
+        }
+      }
+    }
+  };
+
+  exports.AudioTimer = AudioTimer;
+
+  return exports;
 
 }(Synthy || {}));var Synthy = (function() {
 
@@ -176,8 +311,12 @@ var Synthy = (function(Synthy) {
     kill : function() {
       this.modOsc.stop(0);
       this.osc.stop(0);
+      this.modOsc.disconnect(0);
+      this.osc.disconnect(0);
     }
   };
+
+  Synthy.Emitter.register(Synthy.Osc);
 
   return Synthy;
 
@@ -297,25 +436,32 @@ var Synthy = (function(Synthy) {
   Synthy.Voice = function(params, patch, context) {
     var noteNumber = params.noteNumber;
     var velocity = params.velocity || 127;
+    var _this = this;
 
+    this.timer = params.timer;
     this.osc = [];
     this.driveFx = [];
 
     this.envelope = new Synthy.Envelope(patch.envelope, context);
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
 
-    for (var i = 0, _len = patch.osc.length; i < _len; i++) {
-      this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, velocity, context));
-      
-      this.driveFx.push(new Synthy.Drive({
-        "drive" : patch.osc[i].driveAmount,
-        "mix" : patch.osc[i].driveMix,
-        "type" : patch.osc[i].driveType
-      }, context));
+    patch.osc.forEach(function(osc) {
+      var sOsc = new Synthy.Osc(osc, noteNumber, velocity, context)
+      var driveFx = new Synthy.Drive({
+        "drive" : osc.driveAmount,
+        "mix" : osc.driveMix,
+        "type" : osc.driveType
+      }, context);
 
-      this.osc[i].output.connect(this.driveFx[i].input);
-      this.driveFx[i].output.connect(this.filter.input);
-    }
+      _this.osc.push(sOsc);
+      _this.driveFx.push(driveFx);
+
+      _this.on('kill', sOsc.kill, sOsc);
+
+      sOsc.output.connect(driveFx.input);
+      driveFx.output.connect(_this.filter.input);
+      
+    });
 
     this.filter.output.connect(this.envelope.input);
     this.output = this.envelope.input;
@@ -340,18 +486,25 @@ var Synthy = (function(Synthy) {
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
         this.osc[i].release(_time + end);
       }
-      this.timeout = setTimeout(this.destroy.bind(this), (_time + end) * 1000);
+      this.killTime = _time + end;
+      this.timer.callbackAtTime(this.killTime, this.destroy, this);
+      // this.timeout = setTimeout(this.destroy.bind(this), (_time + end) * 1000);
     },
     destroy : function() {
+      this.emit('destroy');
       this.output.disconnect(0);
     },
     kill : function() {
-      clearTimeout(this.timeout);
-      for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].kill();
-      }
+      this.timer.removeCallbackAtTime(this.destroy, this.killTime);
+      this.emit('kill');
+      this.output.disconnect(0);
+      // for (var i = 0, _len = this.osc.length; i < _len; i++) {
+      //   this.osc[i].kill();
+      // }
     }
   };
+
+  Synthy.Emitter.register(Synthy.Voice);
 
   return Synthy;
 

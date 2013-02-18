@@ -48,8 +48,12 @@ var Synthy = (function() {
     kill : function() {
       this.modOsc.stop(0);
       this.osc.stop(0);
+      this.modOsc.disconnect(0);
+      this.osc.disconnect(0);
     }
   };
+
+  Synthy.Emitter.register(Synthy.Osc);
 
   return Synthy;
 

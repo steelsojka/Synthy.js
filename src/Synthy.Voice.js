@@ -3,25 +3,32 @@ var Synthy = (function() {
   Synthy.Voice = function(params, patch, context) {
     var noteNumber = params.noteNumber;
     var velocity = params.velocity || 127;
+    var _this = this;
 
+    this.timer = params.timer;
     this.osc = [];
     this.driveFx = [];
 
     this.envelope = new Synthy.Envelope(patch.envelope, context);
     this.filter   = new Synthy.Filter(patch.filter, noteNumber, context);
 
-    for (var i = 0, _len = patch.osc.length; i < _len; i++) {
-      this.osc.push(new Synthy.Osc(patch.osc[i], noteNumber, velocity, context));
-      
-      this.driveFx.push(new Synthy.Drive({
-        "drive" : patch.osc[i].driveAmount,
-        "mix" : patch.osc[i].driveMix,
-        "type" : patch.osc[i].driveType
-      }, context));
+    patch.osc.forEach(function(osc) {
+      var sOsc = new Synthy.Osc(osc, noteNumber, velocity, context)
+      var driveFx = new Synthy.Drive({
+        "drive" : osc.driveAmount,
+        "mix" : osc.driveMix,
+        "type" : osc.driveType
+      }, context);
 
-      this.osc[i].output.connect(this.driveFx[i].input);
-      this.driveFx[i].output.connect(this.filter.input);
-    }
+      _this.osc.push(sOsc);
+      _this.driveFx.push(driveFx);
+
+      _this.on('kill', sOsc.kill, sOsc);
+
+      sOsc.output.connect(driveFx.input);
+      driveFx.output.connect(_this.filter.input);
+      
+    });
 
     this.filter.output.connect(this.envelope.input);
     this.output = this.envelope.input;
@@ -46,18 +53,25 @@ var Synthy = (function() {
       for (var i = 0, _len = this.osc.length; i < _len; i++) {
         this.osc[i].release(_time + end);
       }
-      this.timeout = setTimeout(this.destroy.bind(this), (_time + end) * 1000);
+      this.killTime = _time + end;
+      this.timer.callbackAtTime(this.killTime, this.destroy, this);
+      // this.timeout = setTimeout(this.destroy.bind(this), (_time + end) * 1000);
     },
     destroy : function() {
+      this.emit('destroy');
       this.output.disconnect(0);
     },
     kill : function() {
-      clearTimeout(this.timeout);
-      for (var i = 0, _len = this.osc.length; i < _len; i++) {
-        this.osc[i].kill();
-      }
+      this.timer.removeCallbackAtTime(this.destroy, this.killTime);
+      this.emit('kill');
+      this.output.disconnect(0);
+      // for (var i = 0, _len = this.osc.length; i < _len; i++) {
+      //   this.osc[i].kill();
+      // }
     }
   };
+
+  Synthy.Emitter.register(Synthy.Voice);
 
   return Synthy;
 
